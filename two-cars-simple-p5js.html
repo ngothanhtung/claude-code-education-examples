@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chuyển Động Ngược Chiều - p5.js</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- MathJax CDN để render công thức toán -->
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      chtml: { scale: 1.0 },
+      startup: { typeset: true }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #1A3A52 0%, #2D5F7C 50%, #4A8BB5 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      color: white;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .header h1 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800;
+      font-size: 38px;
+      color: #FFD93D;
+      letter-spacing: -0.5px;
+      text-shadow: 2px 2px 0 #1A3A52, 4px 4px 0 rgba(0, 0, 0, 0.25);
+    }
+
+    .header p {
+      font-size: 15px;
+      color: #B8D4F0;
+      margin-top: 4px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #ED225D;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      margin-top: 6px;
+      font-weight: 600;
+    }
+
+    .layout {
+      display: flex;
+      gap: 16px;
+      max-width: 1600px;
+      width: 100%;
+      justify-content: center;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    #canvas-holder {
+      border-radius: 0;
+      overflow: hidden;
+      box-shadow: 0 -2px 0 #FFD93D inset;
+      line-height: 0;
+    }
+
+    /* Khối Đề bài theo phong cách SGK */
+    .problem-statement {
+      padding: 14px 20px 14px 20px;
+      background: linear-gradient(135deg, rgba(255, 217, 61, 0.18), rgba(255, 217, 61, 0.08));
+      border-bottom: 2px solid rgba(255, 217, 61, 0.4);
+      border-radius: 20px 20px 0 0;
+    }
+
+    .problem-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px;
+      color: #FFD93D;
+      margin-bottom: 6px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .problem-label .icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .problem-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      line-height: 1.65;
+      color: rgba(255, 255, 255, 0.95);
+      font-style: italic;
+    }
+
+    .problem-text strong {
+      font-style: normal;
+      color: #FFD93D;
+      font-weight: 700;
+      background: rgba(255, 217, 61, 0.15);
+      padding: 0 6px;
+      border-radius: 4px;
+    }
+
+    /* Khối mô phỏng tổng hợp: canvas + bảng số liệu liền nhau */
+    .simulation-panel {
+      display: flex;
+      flex-direction: column;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 4px #FFD93D;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .sim-stats {
+      padding: 16px 20px;
+      background: rgba(26, 58, 82, 0.55);
+      border-top: 2px solid rgba(255, 217, 61, 0.4);
+    }
+
+    .sim-stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 24px;
+    }
+
+    .sim-results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 24px;
+    }
+
+    .sim-results-grid .stat-row {
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+    }
+
+    /* Khối điều chỉnh thông số nằm trong simulation-panel */
+    .sim-controls {
+      padding: 14px 20px;
+      background: rgba(26, 58, 82, 0.4);
+      border-top: 2px solid rgba(255, 217, 61, 0.4);
+    }
+
+    .sim-controls h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px;
+      color: #FFD93D;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .sim-controls h3 .icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .sim-controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px 16px;
+      align-items: center;
+    }
+
+    .sim-control {
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 3px solid transparent;
+    }
+
+    .sim-control.distance {
+      border-left-color: #FFD93D;
+    }
+
+    .sim-control.car-a-ctl {
+      border-left-color: #FF6B6B;
+    }
+
+    .sim-control.car-b-ctl {
+      border-left-color: #4CAF50;
+    }
+
+    .sim-control .ctl-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #FFE5B4;
+      margin-bottom: 6px;
+      gap: 6px;
+    }
+
+    .sim-control .ctl-label .icon {
+      width: 22px;
+      height: 14px;
+    }
+
+    .sim-control .ctl-label .label-text {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .sim-control .ctl-label .val {
+      color: #FFD93D;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .sim-control input[type="range"] {
+      width: 100%;
+      accent-color: #FFD93D;
+    }
+
+    .sim-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .sim-buttons .action {
+      flex: 1;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: none;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, filter 0.15s;
+      color: white;
+    }
+
+    .sim-buttons .action:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.1);
+    }
+
+    .sim-buttons .btn-start {
+      background: #4CAF50;
+    }
+
+    .sim-buttons .btn-pause {
+      background: #FFD93D;
+      color: #1A3A52;
+    }
+
+    .sim-buttons .btn-reset {
+      background: #FF6B6B;
+    }
+
+    .sim-stats-section h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px;
+      color: #FFD93D;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .sim-stats-section h3 .icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .sim-stats .stat-row {
+      font-size: 13px;
+      padding: 3px 0;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 20px;
+      width: 280px;
+      border: 2px solid rgba(255, 217, 61, 0.4);
+    }
+
+    .panel-narrow {
+      width: 240px;
+    }
+
+    .panel h2 {
+      color: #FFD93D;
+      font-size: 20px;
+      margin-bottom: 12px;
+      border-bottom: 2px dashed rgba(255, 217, 61, 0.5);
+      padding-bottom: 8px;
+    }
+
+    .control-group {
+      margin-bottom: 14px;
+    }
+
+    .control-group label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #FFE5B4;
+      margin-bottom: 6px;
+    }
+
+    .control-group label span {
+      color: #FFD93D;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #FFD93D;
+    }
+
+    .car-section {
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+
+    .car-a {
+      background: rgba(255, 107, 107, 0.2);
+      border-left: 4px solid #FF6B6B;
+    }
+
+    .car-b {
+      background: rgba(76, 175, 80, 0.2);
+      border-left: 4px solid #4CAF50;
+    }
+
+    .car-section h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .car-a h3 {
+      color: #FF6B6B;
+    }
+
+    .car-b h3 {
+      color: #4CAF50;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button.action {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: none;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s;
+      color: white;
+    }
+
+    button.action:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-start {
+      background: #4CAF50;
+    }
+
+    .btn-pause {
+      background: #FFD93D;
+      color: #1A3A52;
+    }
+
+    .btn-reset {
+      background: #FF6B6B;
+    }
+
+    /* ===== TOOLTIP GIẢI THÍCH ===== */
+    .has-tooltip {
+      position: relative;
+      cursor: help;
+      border-bottom: 1px dotted rgba(255, 217, 61, 0.5);
+    }
+
+    .has-tooltip::after {
+      content: 'ⓘ';
+      font-size: 11px;
+      color: rgba(255, 217, 61, 0.7);
+      margin-left: 4px;
+      vertical-align: super;
+      font-style: normal;
+    }
+
+    .has-tooltip .tooltip {
+      visibility: hidden;
+      opacity: 0;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      width: 260px;
+      background: #1A3A52;
+      color: white;
+      border: 1.5px solid #FFD93D;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      font-weight: 400;
+      line-height: 1.5;
+      text-align: left;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      white-space: normal;
+    }
+
+    .has-tooltip .tooltip::after {
+      /* mũi tên chỉ xuống */
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 7px solid transparent;
+      border-top-color: #FFD93D;
+    }
+
+    .has-tooltip .tooltip::before {
+      content: '';
+      position: absolute;
+      top: calc(100% - 2px);
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: #1A3A52;
+      z-index: 1;
+    }
+
+    .has-tooltip:hover .tooltip,
+    .has-tooltip:focus .tooltip {
+      visibility: visible;
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .tooltip strong {
+      color: #FFD93D;
+    }
+
+    .tooltip .ex {
+      display: block;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.2);
+      color: #B8D4F0;
+      font-size: 11.5px;
+    }
+
+    .tooltip .formula-inline {
+      display: inline-block;
+      background: rgba(255, 217, 61, 0.15);
+      padding: 1px 6px;
+      border-radius: 3px;
+      color: #FFD93D;
+      font-family: 'Inter', monospace;
+      font-size: 11.5px;
+    }
+
+    /* Khi stats nằm sát mép trên của simulation-panel, dịch tooltip xuống dưới thay vì lên trên */
+    .sim-stats .has-tooltip .tooltip {
+      bottom: auto;
+      top: calc(100% + 8px);
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    .sim-stats .has-tooltip .tooltip::after {
+      top: auto;
+      bottom: 100%;
+      border-top-color: transparent;
+      border-bottom-color: #FFD93D;
+    }
+
+    .sim-stats .has-tooltip .tooltip::before {
+      top: auto;
+      bottom: calc(100% - 2px);
+      border-top-color: transparent;
+      border-bottom-color: #1A3A52;
+    }
+
+    .sim-stats .has-tooltip:hover .tooltip {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .info-box {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .info-box .formula {
+      background: rgba(255, 217, 61, 0.12);
+      border: 1px solid rgba(255, 217, 61, 0.3);
+      padding: 12px 10px;
+      border-radius: 6px;
+      text-align: center;
+      margin: 6px 0 12px 0;
+      color: #FFD93D;
+      overflow-x: auto;
+    }
+
+    .info-box .formula mjx-container {
+      color: #FFD93D !important;
+    }
+
+    .info-box .formula-label {
+      font-size: 13px;
+      color: #B8D4F0;
+      margin-top: 4px;
+      margin-bottom: 2px;
+      font-weight: 500;
+    }
+
+    .info-box .formula-note {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.15);
+      line-height: 1.5;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+    }
+
+    /* SVG icon nhất quán */
+    .icon {
+      display: inline-block;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
+    .panel h2 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel h2 .icon {
+      width: 22px;
+      height: 22px;
+    }
+
+    .car-section h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .car-section h3 .icon {
+      width: 28px;
+      height: 18px;
+    }
+
+    .header h1 {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .header h1 .icon {
+      width: 56px;
+      height: 32px;
+    }
+
+    .stat-row .icon {
+      width: 16px;
+      height: 16px;
+      margin-right: 4px;
+    }
+
+    .stat-row:last-child {
+      border: none;
+    }
+
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      color: #B8D4F0;
+      font-size: 14px;
+      max-width: 800px;
+    }
+
+    .footer strong {
+      color: #FFD93D;
+    }
+
+    .footer code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #FFD93D;
+    }
+
+    /* ===================================================== */
+    /* RESPONSIVE                                            */
+    /* ===================================================== */
+
+    /* ----- TABLET (768-1023px): 1 cột, Công thức trên ----- */
+    @media (max-width: 1023px) {
+      body {
+        padding: 14px;
+      }
+
+      .header h1 {
+        font-size: 30px;
+        gap: 10px;
+      }
+
+      .header h1 .icon {
+        width: 44px;
+        height: 26px;
+      }
+
+      .header p {
+        font-size: 14px;
+      }
+
+      .layout {
+        flex-direction: column;
+        gap: 14px;
+        align-items: stretch;
+      }
+
+      .panel,
+      .panel-narrow {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .simulation-panel {
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      /* Công thức: 3 công thức xếp ngang 3 cột để gọn */
+      .panel-narrow .info-box {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0 16px;
+        align-items: start;
+      }
+
+      .panel-narrow .formula-label {
+        grid-row: 1;
+      }
+
+      .panel-narrow .formula {
+        grid-row: 2;
+        margin: 0;
+      }
+
+      .panel-narrow .formula-note {
+        grid-column: 1 / -1;
+      }
+    }
+
+    /* ----- MOBILE (<768px): nén tối đa ----- */
+    @media (max-width: 767px) {
+      body {
+        padding: 10px;
+      }
+
+      .header {
+        margin-bottom: 10px;
+      }
+
+      .header h1 {
+        font-size: 22px;
+        gap: 8px;
+        line-height: 1.25;
+      }
+
+      .header h1 .icon {
+        width: 32px;
+        height: 20px;
+      }
+
+      .header h1 svg[style*="arrows"] {
+        width: 20px !important;
+        height: 12px !important;
+      }
+
+      .header p {
+        font-size: 12.5px;
+      }
+
+      .badge {
+        font-size: 11px;
+        padding: 3px 9px;
+      }
+
+      /* Panel chung */
+      .panel {
+        padding: 14px;
+        border-radius: 12px;
+      }
+
+      .panel h2 {
+        font-size: 17px;
+      }
+
+      /* Công thức: trở lại 1 cột dọc trên mobile (3 cột chật) */
+      .panel-narrow .info-box {
+        display: block;
+      }
+
+      .panel-narrow .formula {
+        margin: 6px 0 12px 0;
+      }
+
+      .simulation-panel {
+        border-radius: 12px;
+      }
+
+      .problem-statement {
+        padding: 10px 14px;
+        border-radius: 12px 12px 0 0;
+      }
+
+      .problem-text {
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .problem-label {
+        font-size: 12px;
+      }
+
+      /* Khối điều chỉnh: chuyển từ 3 cột → 1 cột dọc */
+      .sim-controls {
+
+        padding: 10px 14px;
+      }
+
+      .sim-controls h3 {
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+
+      .sim-controls-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .sim-control {
+        padding: 7px 9px;
+      }
+
+      .sim-control .ctl-label {
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+
+      .sim-control .ctl-label .val {
+        font-size: 12px;
+      }
+
+      /* Nút: nhỏ hơn */
+      .sim-buttons {
+        margin-top: 10px;
+        gap: 6px;
+      }
+
+      .sim-buttons .action {
+        padding: 9px 6px;
+        font-size: 12px;
+      }
+
+      /* Kết quả: 1 cột trên mobile (2 cột sẽ chật) */
+      .sim-stats {
+        padding: 12px 14px;
+      }
+
+      .sim-stats-section h3 {
+        font-size: 12px;
+      }
+
+      .sim-results-grid {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+
+      .sim-stats .stat-row {
+        font-size: 13px;
+        padding: 6px 0;
+      }
+
+      /* Tooltip: trên mobile thì hover không có nghĩa - dùng tap, và full width */
+      .has-tooltip::after {
+        display: none;
+      }
+
+      /* bỏ icon ⓘ vì gây rối */
+      .has-tooltip {
+        border-bottom: none;
+        cursor: default;
+      }
+
+      .has-tooltip .tooltip {
+        width: calc(100vw - 60px);
+        max-width: 320px;
+        left: 0;
+        transform: translateY(4px);
+        font-size: 12px;
+      }
+
+      .has-tooltip .tooltip::after,
+      .has-tooltip .tooltip::before {
+        display: none;
+      }
+
+      /* Trên mobile, ẩn hẳn tooltip để không che màn hình nhỏ */
+      .has-tooltip:hover .tooltip,
+      .has-tooltip:focus .tooltip {
+        visibility: hidden;
+        opacity: 0;
+      }
+
+      .footer {
+        font-size: 12.5px;
+        padding: 0 6px;
+      }
+    }
+
+    /* ----- MOBILE NHỎ (<400px): siêu nén ----- */
+    @media (max-width: 400px) {
+      .header h1 {
+        font-size: 18px;
+      }
+
+      .header h1 .icon {
+        width: 26px;
+        height: 16px;
+      }
+
+      .badge {
+        display: none;
+      }
+
+      .panel-narrow .formula {
+        font-size: 14px;
+        padding: 8px 6px;
+      }
+
+      .sim-buttons .action {
+        font-size: 11px;
+        padding: 8px 4px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ===== SVG ICONS DÙNG CHUNG (defs) ===== -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <!-- XE A (đỏ, đầu xe hướng PHẢI) -->
+      <symbol id="icon-car-a" viewBox="0 0 64 40">
+        <!-- thân xe -->
+        <rect x="2" y="16" width="60" height="14" rx="3" fill="#FF6B6B" stroke="rgba(0,0,0,0.3)" stroke-width="1" />
+        <!-- mui xe -->
+        <path d="M 10 16 L 18 4 L 48 4 L 54 16 Z" fill="#FF6B6B" stroke="rgba(0,0,0,0.3)" stroke-width="1" />
+        <!-- kính sau (trái) -->
+        <path d="M 12 14 L 19 6 L 29 6 L 29 14 Z" fill="rgba(173,216,230,0.85)" />
+        <!-- kính trước (phải) -->
+        <path d="M 31 14 L 31 6 L 46 6 L 52 14 Z" fill="rgba(173,216,230,0.85)" />
+        <!-- đèn pha trước (phải - vàng) -->
+        <ellipse cx="58" cy="22" rx="3" ry="2.5" fill="#FFF064" stroke="rgba(0,0,0,0.3)" stroke-width="0.6" />
+        <!-- đèn hậu (trái - đỏ sẫm) -->
+        <ellipse cx="5" cy="22" rx="2.5" ry="2" fill="#C81E1E" />
+        <!-- bánh xe -->
+        <circle cx="14" cy="32" r="6" fill="#262626" />
+        <circle cx="14" cy="32" r="3.5" fill="#B4B4B4" />
+        <circle cx="14" cy="32" r="1.2" fill="#262626" />
+        <circle cx="50" cy="32" r="6" fill="#262626" />
+        <circle cx="50" cy="32" r="3.5" fill="#B4B4B4" />
+        <circle cx="50" cy="32" r="1.2" fill="#262626" />
+      </symbol>
+
+      <!-- XE B (xanh, đầu xe hướng TRÁI - giống xe A nhưng lật ngang) -->
+      <symbol id="icon-car-b" viewBox="0 0 64 40">
+        <g transform="scale(-1,1) translate(-64,0)">
+          <rect x="2" y="16" width="60" height="14" rx="3" fill="#4CAF50" stroke="rgba(0,0,0,0.3)" stroke-width="1" />
+          <path d="M 10 16 L 18 4 L 48 4 L 54 16 Z" fill="#4CAF50" stroke="rgba(0,0,0,0.3)" stroke-width="1" />
+          <path d="M 12 14 L 19 6 L 29 6 L 29 14 Z" fill="rgba(173,216,230,0.85)" />
+          <path d="M 31 14 L 31 6 L 46 6 L 52 14 Z" fill="rgba(173,216,230,0.85)" />
+          <ellipse cx="58" cy="22" rx="3" ry="2.5" fill="#FFF064" stroke="rgba(0,0,0,0.3)" stroke-width="0.6" />
+          <ellipse cx="5" cy="22" rx="2.5" ry="2" fill="#C81E1E" />
+          <circle cx="14" cy="32" r="6" fill="#262626" />
+          <circle cx="14" cy="32" r="3.5" fill="#B4B4B4" />
+          <circle cx="14" cy="32" r="1.2" fill="#262626" />
+          <circle cx="50" cy="32" r="6" fill="#262626" />
+          <circle cx="50" cy="32" r="3.5" fill="#B4B4B4" />
+          <circle cx="50" cy="32" r="1.2" fill="#262626" />
+        </g>
+      </symbol>
+
+      <!-- Mũi tên 2 chiều ngược (giữa 2 xe trong header) -->
+      <symbol id="icon-arrows" viewBox="0 0 32 16">
+        <path d="M 2 8 L 14 8 M 2 8 L 6 4 M 2 8 L 6 12" stroke="#FFD93D" stroke-width="2.5" fill="none"
+          stroke-linecap="round" />
+        <path d="M 30 8 L 18 8 M 30 8 L 26 4 M 30 8 L 26 12" stroke="#FFD93D" stroke-width="2.5" fill="none"
+          stroke-linecap="round" />
+      </symbol>
+
+      <!-- Thước đo (icon Công thức) -->
+      <symbol id="icon-formula" viewBox="0 0 24 24">
+        <rect x="3" y="9" width="18" height="6" rx="1" fill="none" stroke="#FFD93D" stroke-width="2" />
+        <line x1="7" y1="9" x2="7" y2="12" stroke="#FFD93D" stroke-width="1.5" />
+        <line x1="11" y1="9" x2="11" y2="13" stroke="#FFD93D" stroke-width="1.5" />
+        <line x1="15" y1="9" x2="15" y2="12" stroke="#FFD93D" stroke-width="1.5" />
+        <line x1="19" y1="9" x2="19" y2="13" stroke="#FFD93D" stroke-width="1.5" />
+      </symbol>
+
+      <!-- Núm vặn (icon Thông số) -->
+      <symbol id="icon-sliders" viewBox="0 0 24 24">
+        <line x1="3" y1="7" x2="21" y2="7" stroke="#FFD93D" stroke-width="2" stroke-linecap="round" />
+        <circle cx="9" cy="7" r="2.5" fill="#1A3A52" stroke="#FFD93D" stroke-width="2" />
+        <line x1="3" y1="17" x2="21" y2="17" stroke="#FFD93D" stroke-width="2" stroke-linecap="round" />
+        <circle cx="15" cy="17" r="2.5" fill="#1A3A52" stroke="#FFD93D" stroke-width="2" />
+      </symbol>
+
+      <!-- Bảng biểu (icon Kết quả) -->
+      <symbol id="icon-chart" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="#FFD93D" stroke-width="2" />
+        <line x1="3" y1="9" x2="21" y2="9" stroke="#FFD93D" stroke-width="1.5" />
+        <line x1="12" y1="9" x2="12" y2="21" stroke="#FFD93D" stroke-width="1.5" />
+      </symbol>
+
+      <!-- Đồng hồ (icon Mô phỏng / thời gian) -->
+      <symbol id="icon-clock" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="#FFD93D" stroke-width="2" />
+        <polyline points="12,7 12,12 15,14" stroke="#FFD93D" stroke-width="2" fill="none" stroke-linecap="round"
+          stroke-linejoin="round" />
+      </symbol>
+
+      <!-- Ghim vị trí (icon Xe A đi / Xe B đi) -->
+      <symbol id="icon-pin" viewBox="0 0 24 24">
+        <path d="M 12 2 C 8 2 5 5 5 9 C 5 14 12 22 12 22 C 12 22 19 14 19 9 C 19 5 16 2 12 2 Z" fill="none"
+          stroke="currentColor" stroke-width="2" />
+        <circle cx="12" cy="9" r="2.5" fill="currentColor" />
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="header">
+    <h1>
+      <svg class="icon">
+        <use href="#icon-car-a" />
+      </svg>
+      <svg class="icon" style="width:32px;height:16px;">
+        <use href="#icon-arrows" />
+      </svg>
+      <svg class="icon">
+        <use href="#icon-car-b" />
+      </svg>
+      Hai Xe Chuyển Động Ngược Chiều
+    </h1>
+    <p>Bài toán hai vật chuyển động ngược chiều • Toán lớp 5</p>
+    <span class="badge">📚 Theo SGK Toán 5 (KNTT • CTST • Cánh Diều)</span>
+  </div>
+
+  <div class="layout">
+    <!-- Cột 1: Công thức -->
+    <div class="panel panel-narrow">
+      <h2><svg class="icon">
+          <use href="#icon-formula" />
+        </svg>Công thức</h2>
+      <div class="info-box">
+        <div class="formula-label">Tổng hai vận tốc:</div>
+        <div class="formula">$$v = v_1 + v_2$$</div>
+
+        <div class="formula-label">Thời gian gặp nhau:</div>
+        <div class="formula">$$t_{gn} = \dfrac{s}{v_1 + v_2}$$</div>
+
+        <div class="formula-label">Quãng đường mỗi xe đi:</div>
+        <div class="formula">$$s_1 = v_1 \times t_{gn}$$</div>
+      </div>
+    </div>
+    <!-- Khối điều chỉnh thông số (đặt giữa canvas và kết quả) -->
+    <div class="sim-controls">
+      <h3><svg class="icon">
+          <use href="#icon-sliders" />
+        </svg>Điều chỉnh</h3>
+      <div class="sim-controls-grid">
+        <div class="sim-control distance">
+          <div class="ctl-label">
+            <span class="label-text">Quãng đường AB</span>
+            <span class="val"><span id="distanceValue">120</span> km</span>
+          </div>
+          <input type="range" id="distanceSlider" min="50" max="300" value="120" step="10">
+        </div>
+
+        <div class="sim-control car-a-ctl">
+          <div class="ctl-label">
+            <span class="label-text">
+              <svg class="icon">
+                <use href="#icon-car-a" />
+              </svg>
+              Vận tốc Xe A
+            </span>
+            <span class="val"><span id="speedAValue">40</span> km/giờ</span>
+          </div>
+          <input type="range" id="speedASlider" min="10" max="120" value="40" step="5">
+        </div>
+
+        <div class="sim-control car-b-ctl">
+          <div class="ctl-label">
+            <span class="label-text">
+              <svg class="icon">
+                <use href="#icon-car-b" />
+              </svg>
+              Vận tốc Xe B
+            </span>
+            <span class="val"><span id="speedBValue">60</span> km/giờ</span>
+          </div>
+          <input type="range" id="speedBSlider" min="10" max="120" value="60" step="5">
+        </div>
+      </div>
+
+      <div class="sim-buttons">
+        <button class="action btn-start" id="btnStart">▶ Bắt đầu</button>
+        <button class="action btn-pause" id="btnPause">⏸ Dừng</button>
+        <button class="action btn-reset" id="btnReset">🔄 Đặt lại</button>
+      </div>
+    </div>
+
+    <div class="sim-stats">
+      <div class="sim-stats-section">
+        <h3><svg class="icon">
+            <use href="#icon-chart" />
+          </svg>Kết quả</h3>
+        <div class="sim-results-grid">
+          <div class="stat-row">
+            <span class="has-tooltip">Tổng hai vận tốc:
+              <span class="tooltip">
+                <strong>Tổng vận tốc của hai xe</strong><br>
+                <span class="formula-inline">v = v₁ + v₂</span><br>
+                Cứ mỗi giờ, hai xe lại gần nhau thêm chừng này ki-lô-mét.
+                <span class="ex">VD: 40 + 60 = <strong>100 km/giờ</strong> → mỗi giờ giảm 100 km</span>
+              </span>
+            </span>
+            <span id="totalSpeed" style="color:#FFD93D;font-weight:600">100 km/giờ</span>
+          </div>
+          <div class="stat-row">
+            <span class="has-tooltip"><svg class="icon" style="color:#FFD93D">
+                <use href="#icon-clock" />
+              </svg>Thời gian đã đi:
+              <span class="tooltip">
+                <strong>Thời gian đã trôi qua từ lúc xuất phát</strong><br>
+                <span class="formula-inline">t = s : (v₁ + v₂)</span><br>
+                Tăng dần khi mô phỏng chạy. Khi hai xe gặp nhau, giá trị này dừng lại — chính là <strong>đáp án bài
+                  toán</strong>.
+                <span class="ex">VD: 120 : 100 = <strong>1,2 giờ</strong> = 1 giờ 12 phút</span>
+              </span>
+            </span>
+            <span id="meetTime" style="color:#FFD93D;font-weight:600">0 giờ</span>
+          </div>
+          <div class="stat-row">
+            <span class="has-tooltip"><svg class="icon" style="color:#FF6B6B">
+                <use href="#icon-pin" />
+              </svg>Xe A đi được:
+              <span class="tooltip">
+                <strong>Quãng đường xe A đã đi được</strong><br>
+                <span class="formula-inline">s₁ = v₁ × t</span><br>
+                Khi gặp xe B, giá trị này chính là <strong>khoảng cách từ A đến chỗ gặp nhau</strong>.
+                <span class="ex">VD: 40 × 1,2 = <strong>48 km</strong> (chỗ gặp cách A 48 km)</span>
+              </span>
+            </span>
+            <span id="distA" style="color:#FF6B6B;font-weight:600">0 km</span>
+          </div>
+          <div class="stat-row">
+            <span class="has-tooltip"><svg class="icon" style="color:#4CAF50">
+                <use href="#icon-pin" />
+              </svg>Xe B đi được:
+              <span class="tooltip">
+                <strong>Quãng đường xe B đã đi được</strong><br>
+                <span class="formula-inline">s₂ = v₂ × t</span><br>
+                Khi gặp xe A, giá trị này chính là <strong>khoảng cách từ B đến chỗ gặp nhau</strong>.
+                <span class="ex">VD: 60 × 1,2 = <strong>72 km</strong> ; 48 + 72 = 120 ✓</span>
+              </span>
+            </span>
+            <span id="distB" style="color:#4CAF50;font-weight:600">0 km</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Cột 2: Mô phỏng tổng hợp (đề bài + canvas + điều chỉnh + kết quả) -->
+    <div class="simulation-panel">
+      <!-- Khối Đề bài (viết theo văn phong SGK Toán 5) -->
+      <div class="problem-statement">
+        <div class="problem-label">
+          <svg class="icon">
+            <use href="#icon-formula" />
+          </svg>
+          Đề bài
+        </div>
+        <div class="problem-text">
+          Quãng đường AB dài <strong id="pS">120</strong> km. Một ô tô đi từ A với vận tốc
+          <strong id="pVA" style="color:#FF6B6B">40 km/giờ</strong>, cùng lúc đó một xe máy
+          đi từ B với vận tốc <strong id="pVB" style="color:#4CAF50">60 km/giờ</strong>.
+          Hỏi sau bao lâu hai xe gặp nhau? Lúc gặp nhau, mỗi xe đi được bao nhiêu ki-lô-mét?
+        </div>
+      </div>
+
+      <div id="canvas-holder"></div>
+
+
+    </div>
+  </div>
+
+  <div class="footer">
+    Mô phỏng dành cho bài <strong>"Hai vật chuyển động ngược chiều"</strong> – Toán lớp 5.
+    <br>Giáo viên có thể kéo các thanh trượt để thay đổi quãng đường, vận tốc và quan sát kết quả trực tiếp.
+  </div>
+
+  <!-- p5.js từ CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+
+  <script>
+    // ============================================================
+    // CHUYỂN ĐỘNG NGƯỢC CHIỀU - p5.js
+    // Toàn bộ logic mô phỏng chỉ trong ~120 dòng code
+    // ============================================================
+
+    // --- BIẾN TRẠNG THÁI ---
+    let distance = 120;      // km - quãng đường AB
+    let speedA = 40;         // km/h
+    let speedB = 60;         // km/h
+    let elapsed = 0;         // giờ mô phỏng đã trôi qua
+    let running = false;
+    let met = false;
+    let meetEffectTime = 0;  // dùng cho hiệu ứng khi gặp nhau
+
+    // --- HẰNG SỐ HIỂN THỊ ---
+    const W = 800, H = 500;
+    const ROAD_Y = 320;
+    const ROAD_LEFT = 80;
+    const ROAD_RIGHT = W - 80;
+    const TIME_SCALE = 0.5;  // 1 giây thực = 0.5 giờ mô phỏng
+
+    // --- SETUP: chạy 1 lần khi khởi động ---
+    function setup() {
+      const canvas = createCanvas(W, H);
+      canvas.parent('canvas-holder');
+      // Canvas vẽ ở kích thước cố định 800x500 (giữ nguyên toán học/vị trí)
+      // CSS sẽ scale xuống theo container - đảm bảo responsive
+      const el = canvas.elt;
+      el.style.width = '100%';
+      el.style.height = 'auto';
+      el.style.display = 'block';
+      textFont('Inter');
+    }
+
+    // --- DRAW: chạy 60 lần/giây, vẽ lại toàn bộ khung hình ---
+    function draw() {
+      // 2 tâm xe xuất phát ở mép trong của đường (cách mép 32px = nửa thân xe)
+      const carStartA = ROAD_LEFT + 32;
+      const carStartB = ROAD_RIGHT - 32;
+
+      // Khoảng cách thực giữa 2 TÂM xe khi xuất phát (px)
+      const initialCenterGapPx = carStartB - carStartA;
+
+      // Khi 2 xe đã đi hết tổng quãng S km, 2 ĐẦU xe vừa chạm
+      // → 2 tâm còn cách nhau đúng 64px (= nửa A + nửa B)
+      // → quãng đường mà 2 tâm "rút ngắn" = initialCenterGapPx - 64
+      // → quãng đường ấy tương ứng với S km
+      const pxPerKm = (initialCenterGapPx - 64) / distance;
+
+      // 1. Cập nhật vật lý - dùng đúng công thức t = S / (vA + vB)
+      if (running && !met) {
+        elapsed += (deltaTime / 1000) * TIME_SCALE;
+        if (speedA * elapsed + speedB * elapsed >= distance) {
+          elapsed = distance / (speedA + speedB);
+          met = true;
+          running = false;
+          meetEffectTime = millis();
+        }
+      }
+
+      // 2. Vẽ cảnh nền
+      drawBackground();
+      drawRoad();
+      drawMilestones();
+
+      // 3. Tính vị trí xe theo elapsed - không cần dịch chỉnh, công thức tự lo
+      const carAX = carStartA + speedA * elapsed * pxPerKm;
+      const carBX = carStartB - speedB * elapsed * pxPerKm;
+
+      drawCar(carAX, ROAD_Y, '#FF6B6B', speedA, +1);
+      drawCar(carBX, ROAD_Y, '#4CAF50', speedB, -1);
+
+      // 4. Thông báo nhẹ nhàng khi gặp nhau
+      if (met) drawMeetMessage((carAX + carBX) / 2);
+
+      // 5. Cập nhật bảng thông số (DOM)
+      updateInfoPanel();
+    }
+
+    // --- VẼ NỀN: trời, mây, núi ---
+    function drawBackground() {
+      // Bầu trời gradient (vẽ từng dải mỏng)
+      for (let y = 0; y < ROAD_Y - 40; y++) {
+        const t = y / (ROAD_Y - 40);
+        const c = lerpColor(color('#87CEEB'), color('#FFE5B4'), t);
+        stroke(c);
+        line(0, y, W, y);
+      }
+      // Cỏ
+      noStroke();
+      fill('#6BAA47');
+      rect(0, ROAD_Y + 40, W, H - ROAD_Y - 40);
+      // Mặt trời
+      fill(255, 217, 61, 200);
+      circle(W - 80, 70, 60);
+      fill(255, 217, 61, 80);
+      circle(W - 80, 70, 90);
+    }
+
+    // --- VẼ ĐƯỜNG ---
+    function drawRoad() {
+      // Mặt đường
+      fill('#3A3A3A');
+      noStroke();
+      rect(0, ROAD_Y - 40, W, 80);
+      // Vạch trắng đứt khúc giữa đường
+      fill(255);
+      for (let x = 30; x < W; x += 60) rect(x, ROAD_Y - 2, 30, 4);
+      // 2 vạch vàng lề
+      fill('#FFD93D');
+      rect(0, ROAD_Y - 40, W, 4);
+      rect(0, ROAD_Y + 36, W, 4);
+    }
+
+    // --- VẼ CỘT MỐC A, B + VẠCH CHIA ---
+    function drawMilestones() {
+      drawSign(ROAD_LEFT, ROAD_Y, 'A', '#FF6B6B');
+      drawSign(ROAD_RIGHT, ROAD_Y, 'B', '#4CAF50');
+      // Vạch chia 5 đoạn
+      textAlign(CENTER);
+      textSize(11);
+      fill(255);
+      for (let i = 1; i < 5; i++) {
+        const x = ROAD_LEFT + (ROAD_RIGHT - ROAD_LEFT) * i / 5;
+        stroke(255, 150); strokeWeight(2);
+        line(x, ROAD_Y - 50, x, ROAD_Y - 36);
+        noStroke();
+        text(Math.round(distance * i / 5) + 'km', x, ROAD_Y - 55);
+      }
+    }
+
+    function drawSign(x, y, label, col) {
+      // Cọc
+      fill('#8B4513'); noStroke();
+      rect(x - 3, y, 6, 60);
+      // Biển tròn
+      fill(col); stroke(255); strokeWeight(3);
+      circle(x, y - 30, 44);
+      // Chữ
+      fill(255); noStroke();
+      textAlign(CENTER, CENTER);
+      textSize(20); textStyle(BOLD);
+      text(label, x, y - 30);
+      textStyle(NORMAL);
+    }
+
+    // --- VẼ XE (tự vẽ bằng hình + bánh xe quay) ---
+    // direction: +1 = xe đi sang phải, -1 = xe đi sang trái
+    function drawCar(x, y, col, speed, direction) {
+      // Nhãn vận tốc phía trên
+      fill(col); noStroke();
+      rect(x - 35, y - 60, 70, 22, 6);
+      fill(255);
+      textAlign(CENTER, CENTER);
+      textSize(12); textStyle(BOLD);
+      text(speed + ' km/h', x, y - 49);
+      textStyle(NORMAL);
+
+      push();
+      translate(x, y);
+      scale(direction, 1);  // lật xe theo hướng đi (direction = -1 thì lật)
+
+      // === THÂN XE ===
+      // Thân dưới (khung xe) - hình chữ nhật dài
+      fill(col);
+      stroke(0, 80); strokeWeight(1.5);
+      rect(-32, -8, 64, 16, 4);
+
+      // Mui xe (phần trên) - hình thang nhô lên
+      // Đi sang phải: cabin nghiêng về phía trước (bên phải)
+      beginShape();
+      vertex(-22, -8);    // góc dưới trái mui
+      vertex(-14, -22);   // góc trên trái mui (kính trước hơi xéo)
+      vertex(16, -22);    // góc trên phải mui
+      vertex(22, -8);     // góc dưới phải mui
+      endShape(CLOSE);
+
+      // Cửa sổ bên (kính)
+      fill(173, 216, 230, 200);  // xanh nhạt trong suốt
+      noStroke();
+      // Kính trước (bên phải - hướng đi)
+      beginShape();
+      vertex(0, -20);
+      vertex(14, -20);
+      vertex(20, -10);
+      vertex(0, -10);
+      endShape(CLOSE);
+      // Kính sau (bên trái)
+      beginShape();
+      vertex(-20, -10);
+      vertex(-12, -20);
+      vertex(-2, -20);
+      vertex(-2, -10);
+      endShape(CLOSE);
+
+      // Đèn pha trước (bên phải - hướng đi)
+      fill(255, 240, 100);
+      stroke(0, 60); strokeWeight(1);
+      ellipse(30, -2, 6, 5);
+      // Đèn hậu (bên trái)
+      fill(200, 30, 30);
+      ellipse(-30, -2, 5, 4);
+
+      // === BÁNH XE QUAY ===
+      // Tính góc quay theo quãng đường đã đi (chu vi bánh xe)
+      // Khi running, bánh xe quay theo elapsed * speed
+      const wheelRadius = 9;
+      const wheelAngle = running && !met
+        ? (elapsed * speed * 0.5)  // hệ số 0.5 để quay tốc độ vừa phải nhìn được
+        : 0;
+
+      drawWheel(-18, 10, wheelRadius, wheelAngle);  // bánh sau
+      drawWheel(18, 10, wheelRadius, wheelAngle);   // bánh trước
+
+      pop();
+    }
+
+    // --- VẼ BÁNH XE CÓ NAN HOA QUAY ---
+    function drawWheel(cx, cy, r, angle) {
+      // Lốp đen
+      fill(40);
+      stroke(0); strokeWeight(1);
+      circle(cx, cy, r * 2);
+
+      // Vành xám
+      fill(180);
+      noStroke();
+      circle(cx, cy, r * 1.3);
+
+      // Nan hoa quay (4 nan)
+      push();
+      translate(cx, cy);
+      rotate(angle);
+      stroke(60); strokeWeight(2);
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * TWO_PI;
+        line(0, 0, cos(a) * r * 0.6, sin(a) * r * 0.6);
+      }
+      // Trục giữa
+      noStroke();
+      fill(40);
+      circle(0, 0, 3);
+      pop();
+    }
+
+    // --- THÔNG BÁO KHI GẶP NHAU (nhẹ nhàng, phù hợp bài giảng) ---
+    function drawMeetMessage(meetX) {
+      const t = (millis() - meetEffectTime) / 1000;  // giây từ lúc gặp
+
+      // Mũi tên chỉ xuống điểm gặp + nhãn "Điểm gặp"
+      // Hiệu ứng nhẹ: hiện dần lên và nảy nhẹ 1 lần
+      const fadeIn = Math.min(t * 2, 1);  // hiện dần trong 0.5s
+      const bounce = Math.sin(t * 3) * 3; // dao động nhẹ ±3px
+
+      push();
+      // Nhãn "Điểm gặp" phía trên điểm gặp
+      const labelY = ROAD_Y - 90 + bounce;
+      fill(255, 217, 61, 230 * fadeIn);
+      stroke(26, 58, 82, 200 * fadeIn); strokeWeight(2);
+      rect(meetX - 65, labelY - 14, 130, 28, 8);
+
+      // Vẽ icon pin nhỏ bên trái text (giống SVG icon-pin)
+      noStroke();
+      fill(26, 58, 82, 255 * fadeIn);
+      push();
+      translate(meetX - 48, labelY);
+      // Thân pin hình giọt nước
+      beginShape();
+      vertex(0, -8);
+      bezierVertex(-5, -8, -7, -4, -7, -1);
+      bezierVertex(-7, 3, 0, 9, 0, 9);
+      bezierVertex(0, 9, 7, 3, 7, -1);
+      bezierVertex(7, -4, 5, -8, 0, -8);
+      endShape(CLOSE);
+      // Lỗ tròn giữa pin
+      fill(255, 217, 61, 255 * fadeIn);
+      circle(0, -2, 5);
+      pop();
+
+      fill(26, 58, 82, 255 * fadeIn);
+      textAlign(CENTER, CENTER);
+      textSize(14); textStyle(BOLD);
+      text('Điểm gặp nhau', meetX + 8, labelY);
+      textStyle(NORMAL);
+
+      // Mũi tên chỉ xuống
+      fill(255, 217, 61, 230 * fadeIn);
+      triangle(
+        meetX - 8, labelY + 16,
+        meetX + 8, labelY + 16,
+        meetX, labelY + 26
+      );
+
+      // Banner trên cao: thông báo kết quả
+      const bannerAlpha = fadeIn * 255;
+      fill(76, 175, 80, bannerAlpha);
+      stroke(255, bannerAlpha); strokeWeight(3);
+      rect(W / 2 - 180, 30, 360, 50, 12);
+
+      noStroke();
+      fill(255, bannerAlpha);
+      textAlign(CENTER, CENTER);
+      textSize(20); textStyle(BOLD);
+      text('✓ Hai xe đã gặp nhau', W / 2, 55);
+      textStyle(NORMAL);
+
+      pop();
+    }
+
+    // --- CẬP NHẬT BẢNG SỐ LIỆU ---
+    // --- HELPER: định dạng số kiểu Việt Nam (dấu phẩy thập phân) ---
+    function formatVN(num, decimals = 2) {
+      return num.toFixed(decimals).replace('.', ',');
+    }
+
+    // --- HELPER: định dạng thời gian dạng "1,20 giờ = 1 giờ 12 phút" ---
+    function formatTime(hours) {
+      if (hours <= 0) return '0 giờ';
+
+      const h = Math.floor(hours);
+      const m = Math.round((hours - h) * 60);
+
+      // Phần thập phân
+      const decimal = formatVN(hours, 2);
+
+      // Phần "giờ phút" - chỉ hiển thị khi có ý nghĩa
+      if (h === 0 && m > 0) return `${decimal} giờ (${m} phút)`;
+      if (h > 0 && m === 0) return `${decimal} giờ (${h} giờ)`;
+      if (h > 0 && m > 0) return `${decimal} giờ (${h} giờ ${m} phút)`;
+      return `${decimal} giờ`;
+    }
+
+    // --- CẬP NHẬT ĐỀ BÀI khi đổi thông số ---
+    function updateProblemStatement() {
+      document.getElementById('pS').textContent = distance;
+      document.getElementById('pVA').textContent = speedA + ' km/giờ';
+      document.getElementById('pVB').textContent = speedB + ' km/giờ';
+    }
+
+    function updateInfoPanel() {
+      const totalV = speedA + speedB;
+
+      // Tổng vận tốc: không đổi theo thời gian
+      document.getElementById('totalSpeed').textContent = totalV + ' km/giờ';
+
+      // 3 giá trị tăng dần theo elapsed
+      const currentDistA = speedA * elapsed;
+      const currentDistB = speedB * elapsed;
+
+      document.getElementById('meetTime').textContent = formatTime(elapsed);
+      document.getElementById('distA').textContent = formatVN(currentDistA, 1) + ' km';
+      document.getElementById('distB').textContent = formatVN(currentDistB, 1) + ' km';
+    }
+
+    // --- HÀM ĐẶT LẠI ---
+    function resetSim() {
+      elapsed = 0;
+      running = false;
+      met = false;
+    }
+
+    // ============================================================
+    // KẾT NỐI UI HTML (chỉ là nối slider -> biến)
+    // ============================================================
+    document.getElementById('distanceSlider').oninput = e => {
+      distance = +e.target.value;
+      document.getElementById('distanceValue').textContent = distance;
+      updateProblemStatement();
+      resetSim();
+    };
+    document.getElementById('speedASlider').oninput = e => {
+      speedA = +e.target.value;
+      document.getElementById('speedAValue').textContent = speedA;
+      updateProblemStatement();
+    };
+    document.getElementById('speedBSlider').oninput = e => {
+      speedB = +e.target.value;
+      document.getElementById('speedBValue').textContent = speedB;
+      updateProblemStatement();
+    };
+    document.getElementById('btnStart').onclick = () => {
+      if (met) resetSim();
+      running = true;
+    };
+    document.getElementById('btnPause').onclick = () => running = false;
+    document.getElementById('btnReset').onclick = () => resetSim();
+
+    // Khởi tạo đề bài lúc load trang
+    updateProblemStatement();
+  </script>
+
+</body>
+
+</html>

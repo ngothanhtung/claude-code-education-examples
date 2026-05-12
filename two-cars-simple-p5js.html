@@ -73,20 +73,57 @@
     }
 
     .layout {
-      display: flex;
+      display: grid;
+      grid-template-columns: 30% calc(70% - 16px);
+      grid-template-areas:
+        "formula  simulation"
+        "results  controls";
       gap: 16px;
       max-width: 1600px;
       width: 100%;
-      justify-content: center;
-      flex-wrap: wrap;
-      align-items: flex-start;
+      /* Mặc định align-items: stretch - các ô cùng hàng cao bằng nhau */
     }
 
-    #canvas-holder {
-      border-radius: 0;
-      overflow: hidden;
-      box-shadow: 0 -2px 0 #FFD93D inset;
-      line-height: 0;
+    .layout>* {
+      min-width: 0;
+    }
+
+    /* Mặc định align-items: stretch - mọi ô cùng hàng cao bằng nhau */
+    /* Hàng trên (formula + simulation): Mô phỏng cao bằng Công thức, canvas tự co */
+    /* Hàng dưới (results + controls): Điều chỉnh cao bằng Kết quả */
+
+    /* Gán mỗi panel vào ô grid tương ứng */
+    .layout .panel-formula {
+      grid-area: formula;
+    }
+
+    .layout .simulation-panel {
+      grid-area: simulation;
+    }
+
+    .layout .panel-results {
+      grid-area: results;
+    }
+
+    .layout .panel-controls {
+      grid-area: controls;
+    }
+
+    /* Panel bên (Điều chỉnh, Kết quả) - tùy chỉnh layout bên trong */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .side-panel .info-box {
+      flex: 1;
+    }
+
+    /* Panel Điều chỉnh: vì bị kéo dãn theo Kết quả (cao hơn),
+     dùng flex để khoảng cách giữa 3 slider và nút phân bổ đều */
+    .panel-controls .sim-controls-grid {
+      flex: 1;
+      align-content: space-around;
     }
 
     /* Khối Đề bài theo phong cách SGK */
@@ -141,6 +178,33 @@
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 4px #FFD93D;
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
+      min-height: 0;
+      /* cho phép flex item co lại theo container */
+    }
+
+    /* Đề bài: không co (giữ chiều cao theo nội dung) */
+    .simulation-panel .problem-statement {
+      flex-shrink: 0;
+    }
+
+    /* Canvas chiếm phần còn lại của panel, canvas thật bên trong tự co theo */
+    .simulation-panel #canvas-holder {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #87CEEB;
+      /* màu trời để khớp khi canvas hẹp hơn container */
+    }
+
+    .simulation-panel #canvas-holder canvas {
+      max-width: 100% !important;
+      max-height: 100% !important;
+      width: auto !important;
+      height: auto !important;
+      object-fit: contain;
+    }
     }
 
     .sim-stats {
@@ -194,7 +258,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 10px 16px;
-      align-items: center;
+      align-items: stretch;
     }
 
     .sim-control {
@@ -314,12 +378,11 @@
       backdrop-filter: blur(10px);
       border-radius: 16px;
       padding: 20px;
-      width: 280px;
       border: 2px solid rgba(255, 217, 61, 0.4);
     }
 
     .panel-narrow {
-      width: 240px;
+      /* width do grid quyết định (30%) */
     }
 
     .panel h2 {
@@ -677,15 +740,13 @@
       }
 
       .layout {
-        flex-direction: column;
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "formula"
+          "simulation"
+          "controls"
+          "results";
         gap: 14px;
-        align-items: stretch;
-      }
-
-      .panel,
-      .panel-narrow {
-        width: 100%;
-        max-width: 100%;
       }
 
       .simulation-panel {
@@ -788,17 +849,7 @@
         font-size: 12px;
       }
 
-      /* Khối điều chỉnh: chuyển từ 3 cột → 1 cột dọc */
-      .sim-controls {
-
-        padding: 10px 14px;
-      }
-
-      .sim-controls h3 {
-        font-size: 13px;
-        margin-bottom: 8px;
-      }
-
+      /* Khối điều chỉnh */
       .sim-controls-grid {
         grid-template-columns: 1fr;
         gap: 8px;
@@ -828,21 +879,8 @@
         font-size: 12px;
       }
 
-      /* Kết quả: 1 cột trên mobile (2 cột sẽ chật) */
-      .sim-stats {
-        padding: 12px 14px;
-      }
-
-      .sim-stats-section h3 {
-        font-size: 12px;
-      }
-
-      .sim-results-grid {
-        grid-template-columns: 1fr;
-        gap: 0;
-      }
-
-      .sim-stats .stat-row {
+      /* Kết quả - stat-row gọn hơn */
+      .stat-row {
         font-size: 13px;
         padding: 6px 0;
       }
@@ -1024,8 +1062,8 @@
   </div>
 
   <div class="layout">
-    <!-- Cột 1: Công thức -->
-    <div class="panel panel-narrow">
+    <!-- Ô trên-trái: Công thức -->
+    <div class="panel panel-narrow panel-formula">
       <h2><svg class="icon">
           <use href="#icon-formula" />
         </svg>Công thức</h2>
@@ -1038,13 +1076,97 @@
 
         <div class="formula-label">Quãng đường mỗi xe đi:</div>
         <div class="formula">$$s_1 = v_1 \times t_{gn}$$</div>
+
+        <div class="formula-note">
+          <strong style="color:#FFD93D">Quy tắc:</strong> Thời gian đi để gặp nhau = Quãng đường : Tổng hai vận tốc.
+        </div>
       </div>
     </div>
-    <!-- Khối điều chỉnh thông số (đặt giữa canvas và kết quả) -->
-    <div class="sim-controls">
-      <h3><svg class="icon">
+
+    <!-- Ô trên-phải: Mô phỏng (Đề bài + Canvas) -->
+    <div class="simulation-panel">
+      <div class="problem-statement">
+        <div class="problem-label">
+          <svg class="icon">
+            <use href="#icon-formula" />
+          </svg>
+          Đề bài
+        </div>
+        <div class="problem-text">
+          Quãng đường AB dài <strong id="pS">120</strong> km. Một ô tô đi từ A với vận tốc
+          <strong id="pVA" style="color:#FF6B6B">40 km/giờ</strong>, cùng lúc đó một xe máy
+          đi từ B với vận tốc <strong id="pVB" style="color:#4CAF50">60 km/giờ</strong>.
+          Hỏi sau bao lâu hai xe gặp nhau? Lúc gặp nhau, mỗi xe đi được bao nhiêu ki-lô-mét?
+        </div>
+      </div>
+
+      <div id="canvas-holder"></div>
+    </div>
+
+    <!-- Ô dưới-trái: Kết quả (dưới Công thức) -->
+    <div class="panel side-panel panel-results">
+      <h2><svg class="icon">
+          <use href="#icon-chart" />
+        </svg>Kết quả</h2>
+      <div class="info-box">
+        <div class="stat-row">
+          <span class="has-tooltip">Tổng hai vận tốc:
+            <span class="tooltip">
+              <strong>Tổng vận tốc của hai xe</strong><br>
+              <span class="formula-inline">v = v₁ + v₂</span><br>
+              Cứ mỗi giờ, hai xe lại gần nhau thêm chừng này ki-lô-mét.
+              <span class="ex">VD: 40 + 60 = <strong>100 km/giờ</strong> → mỗi giờ giảm 100 km</span>
+            </span>
+          </span>
+          <span id="totalSpeed" style="color:#FFD93D;font-weight:600">100 km/giờ</span>
+        </div>
+        <div class="stat-row">
+          <span class="has-tooltip"><svg class="icon" style="color:#FFD93D">
+              <use href="#icon-clock" />
+            </svg>Thời gian đã đi:
+            <span class="tooltip">
+              <strong>Thời gian đã trôi qua từ lúc xuất phát</strong><br>
+              <span class="formula-inline">t = s : (v₁ + v₂)</span><br>
+              Tăng dần khi mô phỏng chạy. Khi hai xe gặp nhau, giá trị này dừng lại — chính là <strong>đáp án bài toán</strong>.
+              <span class="ex">VD: 120 : 100 = <strong>1,2 giờ</strong> = 1 giờ 12 phút</span>
+            </span>
+          </span>
+          <span id="meetTime" style="color:#FFD93D;font-weight:600">0 giờ</span>
+        </div>
+        <div class="stat-row">
+          <span class="has-tooltip"><svg class="icon" style="color:#FF6B6B">
+              <use href="#icon-pin" />
+            </svg>Xe A đi được:
+            <span class="tooltip">
+              <strong>Quãng đường xe A đã đi được</strong><br>
+              <span class="formula-inline">s₁ = v₁ × t</span><br>
+              Khi gặp xe B, giá trị này chính là <strong>khoảng cách từ A đến chỗ gặp nhau</strong>.
+              <span class="ex">VD: 40 × 1,2 = <strong>48 km</strong> (chỗ gặp cách A 48 km)</span>
+            </span>
+          </span>
+          <span id="distA" style="color:#FF6B6B;font-weight:600">0 km</span>
+        </div>
+        <div class="stat-row">
+          <span class="has-tooltip"><svg class="icon" style="color:#4CAF50">
+              <use href="#icon-pin" />
+            </svg>Xe B đi được:
+            <span class="tooltip">
+              <strong>Quãng đường xe B đã đi được</strong><br>
+              <span class="formula-inline">s₂ = v₂ × t</span><br>
+              Khi gặp xe A, giá trị này chính là <strong>khoảng cách từ B đến chỗ gặp nhau</strong>.
+              <span class="ex">VD: 60 × 1,2 = <strong>72 km</strong> ; 48 + 72 = 120 ✓</span>
+            </span>
+          </span>
+          <span id="distB" style="color:#4CAF50;font-weight:600">0 km</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ô dưới-phải: Điều chỉnh (dưới Mô phỏng) -->
+    <div class="panel side-panel panel-controls">
+      <h2><svg class="icon">
           <use href="#icon-sliders" />
-        </svg>Điều chỉnh</h3>
+        </svg>Điều chỉnh</h2>
       <div class="sim-controls-grid">
         <div class="sim-control distance">
           <div class="ctl-label">
@@ -1087,89 +1209,6 @@
         <button class="action btn-reset" id="btnReset">🔄 Đặt lại</button>
       </div>
     </div>
-
-    <div class="sim-stats">
-      <div class="sim-stats-section">
-        <h3><svg class="icon">
-            <use href="#icon-chart" />
-          </svg>Kết quả</h3>
-        <div class="sim-results-grid">
-          <div class="stat-row">
-            <span class="has-tooltip">Tổng hai vận tốc:
-              <span class="tooltip">
-                <strong>Tổng vận tốc của hai xe</strong><br>
-                <span class="formula-inline">v = v₁ + v₂</span><br>
-                Cứ mỗi giờ, hai xe lại gần nhau thêm chừng này ki-lô-mét.
-                <span class="ex">VD: 40 + 60 = <strong>100 km/giờ</strong> → mỗi giờ giảm 100 km</span>
-              </span>
-            </span>
-            <span id="totalSpeed" style="color:#FFD93D;font-weight:600">100 km/giờ</span>
-          </div>
-          <div class="stat-row">
-            <span class="has-tooltip"><svg class="icon" style="color:#FFD93D">
-                <use href="#icon-clock" />
-              </svg>Thời gian đã đi:
-              <span class="tooltip">
-                <strong>Thời gian đã trôi qua từ lúc xuất phát</strong><br>
-                <span class="formula-inline">t = s : (v₁ + v₂)</span><br>
-                Tăng dần khi mô phỏng chạy. Khi hai xe gặp nhau, giá trị này dừng lại — chính là <strong>đáp án bài
-                  toán</strong>.
-                <span class="ex">VD: 120 : 100 = <strong>1,2 giờ</strong> = 1 giờ 12 phút</span>
-              </span>
-            </span>
-            <span id="meetTime" style="color:#FFD93D;font-weight:600">0 giờ</span>
-          </div>
-          <div class="stat-row">
-            <span class="has-tooltip"><svg class="icon" style="color:#FF6B6B">
-                <use href="#icon-pin" />
-              </svg>Xe A đi được:
-              <span class="tooltip">
-                <strong>Quãng đường xe A đã đi được</strong><br>
-                <span class="formula-inline">s₁ = v₁ × t</span><br>
-                Khi gặp xe B, giá trị này chính là <strong>khoảng cách từ A đến chỗ gặp nhau</strong>.
-                <span class="ex">VD: 40 × 1,2 = <strong>48 km</strong> (chỗ gặp cách A 48 km)</span>
-              </span>
-            </span>
-            <span id="distA" style="color:#FF6B6B;font-weight:600">0 km</span>
-          </div>
-          <div class="stat-row">
-            <span class="has-tooltip"><svg class="icon" style="color:#4CAF50">
-                <use href="#icon-pin" />
-              </svg>Xe B đi được:
-              <span class="tooltip">
-                <strong>Quãng đường xe B đã đi được</strong><br>
-                <span class="formula-inline">s₂ = v₂ × t</span><br>
-                Khi gặp xe A, giá trị này chính là <strong>khoảng cách từ B đến chỗ gặp nhau</strong>.
-                <span class="ex">VD: 60 × 1,2 = <strong>72 km</strong> ; 48 + 72 = 120 ✓</span>
-              </span>
-            </span>
-            <span id="distB" style="color:#4CAF50;font-weight:600">0 km</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- Cột 2: Mô phỏng tổng hợp (đề bài + canvas + điều chỉnh + kết quả) -->
-    <div class="simulation-panel">
-      <!-- Khối Đề bài (viết theo văn phong SGK Toán 5) -->
-      <div class="problem-statement">
-        <div class="problem-label">
-          <svg class="icon">
-            <use href="#icon-formula" />
-          </svg>
-          Đề bài
-        </div>
-        <div class="problem-text">
-          Quãng đường AB dài <strong id="pS">120</strong> km. Một ô tô đi từ A với vận tốc
-          <strong id="pVA" style="color:#FF6B6B">40 km/giờ</strong>, cùng lúc đó một xe máy
-          đi từ B với vận tốc <strong id="pVB" style="color:#4CAF50">60 km/giờ</strong>.
-          Hỏi sau bao lâu hai xe gặp nhau? Lúc gặp nhau, mỗi xe đi được bao nhiêu ki-lô-mét?
-        </div>
-      </div>
-
-      <div id="canvas-holder"></div>
-
-
-    </div>
   </div>
 
   <div class="footer">
@@ -1201,34 +1240,29 @@
     const ROAD_LEFT = 80;
     const ROAD_RIGHT = W - 80;
     const TIME_SCALE = 0.5;  // 1 giây thực = 0.5 giờ mô phỏng
+    // Vị trí xuất phát 2 xe (cách mép 32px = nửa thân xe để 2 đầu sát nhau khi gặp)
+    const CAR_START_A = ROAD_LEFT + 32;
+    const CAR_START_B = ROAD_RIGHT - 32;
 
     // --- SETUP: chạy 1 lần khi khởi động ---
     function setup() {
       const canvas = createCanvas(W, H);
       canvas.parent('canvas-holder');
-      // Canvas vẽ ở kích thước cố định 800x500 (giữ nguyên toán học/vị trí)
-      // CSS sẽ scale xuống theo container - đảm bảo responsive
-      const el = canvas.elt;
-      el.style.width = '100%';
-      el.style.height = 'auto';
-      el.style.display = 'block';
+      // Canvas vẽ ở kích thước cố định 800x500 (giữ nguyên toán học)
+      // CSS .simulation-panel #canvas-holder canvas sẽ scale xuống vừa khung,
+      // giữ tỷ lệ 800:500 nhờ object-fit: contain
       textFont('Inter');
     }
 
     // --- DRAW: chạy 60 lần/giây, vẽ lại toàn bộ khung hình ---
     function draw() {
-      // 2 tâm xe xuất phát ở mép trong của đường (cách mép 32px = nửa thân xe)
-      const carStartA = ROAD_LEFT + 32;
-      const carStartB = ROAD_RIGHT - 32;
+      // Khoảng cách giữa 2 TÂM xe khi xuất phát (px)
+      const initialCenterGapPx = CAR_START_B - CAR_START_A;
 
-      // Khoảng cách thực giữa 2 TÂM xe khi xuất phát (px)
-      const initialCenterGapPx = carStartB - carStartA;
-
-      // Khi 2 xe đã đi hết tổng quãng S km, 2 ĐẦU xe vừa chạm
-      // → 2 tâm còn cách nhau đúng 64px (= nửa A + nửa B)
-      // → quãng đường mà 2 tâm "rút ngắn" = initialCenterGapPx - 64
-      // → quãng đường ấy tương ứng với S km
-      const pxPerKm = (initialCenterGapPx - 64) / distance;
+      // Tỷ lệ chuyển đổi: quãng đường pixel / quãng đường km
+      // 2 tâm xe cách nhau initialCenterGapPx pixel = distance km
+      // → pxPerKm = initialCenterGapPx / distance
+      const pxPerKm = initialCenterGapPx / distance;
 
       // 1. Cập nhật vật lý - dùng đúng công thức t = S / (vA + vB)
       if (running && !met) {
@@ -1246,21 +1280,36 @@
       drawRoad();
       drawMilestones();
 
-      // 3. Tính vị trí xe theo elapsed - không cần dịch chỉnh, công thức tự lo
-      const carAX = carStartA + speedA * elapsed * pxPerKm;
-      const carBX = carStartB - speedB * elapsed * pxPerKm;
+      // 3. Tính vị trí tâm xe theo elapsed
+      // Điều chỉnh để đầu MŨICỦA mỗi xe sát mốc 0km (A) và 120km (B)
+      // Vì xe dài 64px:
+      // - Đầu mũi A ở mốc 0km = CAR_START_A
+      //   → tâm A = CAR_START_A - 32 (lùi lại nửa thân)
+      // - Đầu mũi B ở mốc 120km = CAR_START_B
+      //   → tâm B = CAR_START_B + 32 (lùi lại nửa thân, vì xe B quay ngược)
 
-      drawCar(carAX, ROAD_Y, '#FF6B6B', speedA, +1);
-      drawCar(carBX, ROAD_Y, '#4CAF50', speedB, -1);
+      const carAX = (CAR_START_A - 32) + speedA * elapsed * pxPerKm;
+      const carBX = (CAR_START_B + 32) - speedB * elapsed * pxPerKm;
 
-      // 4. Thông báo nhẹ nhàng khi gặp nhau
+      drawCar(carAX, ROAD_Y + 10, '#FF6B6B', speedA, +1);  // xe A (đỏ) ở làn dưới (ROAD_Y + 10)
+      drawCar(carBX, ROAD_Y - 25, '#4CAF50', speedB, -1);  // xe B (xanh) lên cao hơn (ROAD_Y - 25)
+
+      // 4. Vẽ mốc gặp nhau (nếu đã gặp) - tính từ quãng đường thực xe A đã đi (= 48 km)
+      // để khớp chính xác với mốc km phía trên
+      if (met) {
+        const meetDistanceA = speedA * elapsed;  // quãng đường xe A đã đi = vị trí gặp từ A
+        const meetPointX = CAR_START_A + meetDistanceA * pxPerKm;
+        drawMeetPoint(meetPointX, meetDistanceA);
+      }
+
+      // 5. Thông báo nhẹ nhàng khi gặp nhau (dùng tâm 2 xe để hiệu ứng đẹp)
       if (met) drawMeetMessage((carAX + carBX) / 2);
 
-      // 5. Cập nhật bảng thông số (DOM)
+      // 6. Cập nhật bảng thông số (DOM)
       updateInfoPanel();
     }
 
-    // --- VẼ NỀN: trời, mây, núi ---
+    // --- VẼ NỀN: trời, mặt trời ---
     function drawBackground() {
       // Bầu trời gradient (vẽ từng dải mỏng)
       for (let y = 0; y < ROAD_Y - 40; y++) {
@@ -1269,17 +1318,23 @@
         stroke(c);
         line(0, y, W, y);
       }
+
+      // Mặt trời - animation nhún nhẹ
+      const sunBounce = sin(millis() / 500) * 0.05 + 1;  // nhún từ 0.95 đến 1.05
+      push();
+      translate(W - 80, 70);
+      scale(sunBounce);
+      fill(255, 217, 61, 200);
+      circle(0, 0, 60);
+      pop();
+
       // Cỏ
       noStroke();
       fill('#6BAA47');
       rect(0, ROAD_Y + 40, W, H - ROAD_Y - 40);
-      // Mặt trời
-      fill(255, 217, 61, 200);
-      circle(W - 80, 70, 60);
-      fill(255, 217, 61, 80);
-      circle(W - 80, 70, 90);
     }
 
+    // --- VẼ MÂY ---
     // --- VẼ ĐƯỜNG ---
     function drawRoad() {
       // Mặt đường
@@ -1297,14 +1352,17 @@
 
     // --- VẼ CỘT MỐC A, B + VẠCH CHIA ---
     function drawMilestones() {
-      drawSign(ROAD_LEFT, ROAD_Y, 'A', '#FF6B6B');
-      drawSign(ROAD_RIGHT, ROAD_Y, 'B', '#4CAF50');
-      // Vạch chia 5 đoạn
+      // Dịch cao hơn nữa (ROAD_Y - 100) 
+      drawSign(ROAD_LEFT, ROAD_Y - 100, 'A', '#FF6B6B');
+      drawSign(ROAD_RIGHT, ROAD_Y - 100, 'B', '#4CAF50');
+
+      // Vạch chia: từ 0km (A) đến 120km (B) chia 6 đoạn (i = 0, 1, 2, 3, 4, 5)
       textAlign(CENTER);
       textSize(11);
-      fill(255);
-      for (let i = 1; i < 5; i++) {
-        const x = ROAD_LEFT + (ROAD_RIGHT - ROAD_LEFT) * i / 5;
+      fill(40);  // màu tối (đen) thay vì 255 (trắng)
+      for (let i = 0; i <= 5; i++) {
+        // Tính vị trí mốc dựa trên khoảng thực của xe (CAR_START_A -> CAR_START_B)
+        const x = CAR_START_A + (CAR_START_B - CAR_START_A) * i / 5;
         stroke(255, 150); strokeWeight(2);
         line(x, ROAD_Y - 50, x, ROAD_Y - 36);
         noStroke();
@@ -1312,31 +1370,33 @@
       }
     }
 
+
     function drawSign(x, y, label, col) {
-      // Cọc
-      fill('#8B4513'); noStroke();
-      rect(x - 3, y, 6, 60);
-      // Biển tròn
+      // Biển tròn (bỏ cọc)
       fill(col); stroke(255); strokeWeight(3);
-      circle(x, y - 30, 44);
-      // Chữ
+      circle(x, y, 44);
+      // Chữ A hoặc B
       fill(255); noStroke();
       textAlign(CENTER, CENTER);
       textSize(20); textStyle(BOLD);
-      text(label, x, y - 30);
+      text(label, x, y);
       textStyle(NORMAL);
     }
 
     // --- VẼ XE (tự vẽ bằng hình + bánh xe quay) ---
     // direction: +1 = xe đi sang phải, -1 = xe đi sang trái
     function drawCar(x, y, col, speed, direction) {
-      // Nhãn vận tốc phía trên
+      // Nhãn vận tốc phía trên đầu xe, phía sau
+      // direction = +1: xe đi sang phải, label phía trái đầu xe (x - 70)
+      // direction = -1: xe đi sang trái (đã lật), label phía phải đầu xe (x + 70)
+      const labelX = x - (70 * direction);  // -70 nếu direction=+1, +70 nếu direction=-1
+
       fill(col); noStroke();
-      rect(x - 35, y - 60, 70, 22, 6);
+      rect(labelX - 35, y - 60, 70, 22, 6);  // box phía trên đầu xe (y - 60 thay vì y - 11)
       fill(255);
       textAlign(CENTER, CENTER);
       textSize(12); textStyle(BOLD);
-      text(speed + ' km/h', x, y - 49);
+      text(speed + ' km/h', labelX, y - 49);  // text giữa box (y - 49 = giữa từ y-60 đến y-38)
       textStyle(NORMAL);
 
       push();
@@ -1426,52 +1486,81 @@
       pop();
     }
 
+    // --- VẼ MỐC GẶP NHAU (vạch + nhãn hiển thị vị trí km) ---
+    function drawMeetPoint(meetX, distanceA) {
+      // Vạch dọc phía trên đường (màu vàng)
+      stroke(255, 217, 61);
+      strokeWeight(3);
+      line(meetX, ROAD_Y - 50, meetX, ROAD_Y - 35);
+
+      // Pin nhỏ phía dưới đường (chỉ xuống vị trí gặp)
+      noStroke();
+      fill(255, 217, 61, 200);
+      push();
+      translate(meetX, ROAD_Y + 45);
+      // Hình pin/mũi tên chỉ xuống
+      beginShape();
+      vertex(0, -12);      // đầu nhọn
+      vertex(-6, -4);      // bên trái
+      vertex(-3, -4);
+      vertex(-3, 8);       // thân
+      vertex(3, 8);
+      vertex(3, -4);
+      vertex(6, -4);       // bên phải
+      endShape(CLOSE);
+      pop();
+
+      // Nhãn: hiển thị vị trí km gặp (quãng đường xe A đã đi)
+      fill(255, 217, 61);
+      noStroke();
+      textAlign(CENTER);
+      textFont('Plus Jakarta Sans');
+      textSize(13);
+      textStyle(BOLD);
+      text(formatVN(distanceA, 1) + ' km', meetX, ROAD_Y + 70);
+      textStyle(NORMAL);
+    }
+
     // --- THÔNG BÁO KHI GẶP NHAU (nhẹ nhàng, phù hợp bài giảng) ---
     function drawMeetMessage(meetX) {
       const t = (millis() - meetEffectTime) / 1000;  // giây từ lúc gặp
 
-      // Mũi tên chỉ xuống điểm gặp + nhãn "Điểm gặp"
+      // Icon pin chỉ xuống điểm gặp
       // Hiệu ứng nhẹ: hiện dần lên và nảy nhẹ 1 lần
       const fadeIn = Math.min(t * 2, 1);  // hiện dần trong 0.5s
       const bounce = Math.sin(t * 3) * 3; // dao động nhẹ ±3px
 
       push();
-      // Nhãn "Điểm gặp" phía trên điểm gặp
+      // Box chứa icon pin - thu nhỏ hơn vì chỉ có icon
       const labelY = ROAD_Y - 90 + bounce;
       fill(255, 217, 61, 230 * fadeIn);
       stroke(26, 58, 82, 200 * fadeIn); strokeWeight(2);
-      rect(meetX - 65, labelY - 14, 130, 28, 8);
+      rect(meetX - 25, labelY - 20, 50, 40, 8);  // nhỏ hơn (50x40 thay vì 130x28)
 
-      // Vẽ icon pin nhỏ bên trái text (giống SVG icon-pin)
+      // Vẽ icon pin lớn hơn giữa box
       noStroke();
       fill(26, 58, 82, 255 * fadeIn);
       push();
-      translate(meetX - 48, labelY);
-      // Thân pin hình giọt nước
+      translate(meetX, labelY);
+      // Thân pin hình giọt nước - lớn hơn
       beginShape();
-      vertex(0, -8);
-      bezierVertex(-5, -8, -7, -4, -7, -1);
-      bezierVertex(-7, 3, 0, 9, 0, 9);
-      bezierVertex(0, 9, 7, 3, 7, -1);
-      bezierVertex(7, -4, 5, -8, 0, -8);
+      vertex(0, -10);
+      bezierVertex(-6, -10, -9, -5, -9, -1);
+      bezierVertex(-9, 4, 0, 12, 0, 12);
+      bezierVertex(0, 12, 9, 4, 9, -1);
+      bezierVertex(9, -5, 6, -10, 0, -10);
       endShape(CLOSE);
       // Lỗ tròn giữa pin
       fill(255, 217, 61, 255 * fadeIn);
-      circle(0, -2, 5);
+      circle(0, -2, 6);
       pop();
-
-      fill(26, 58, 82, 255 * fadeIn);
-      textAlign(CENTER, CENTER);
-      textSize(14); textStyle(BOLD);
-      text('Điểm gặp nhau', meetX + 8, labelY);
-      textStyle(NORMAL);
 
       // Mũi tên chỉ xuống
       fill(255, 217, 61, 230 * fadeIn);
       triangle(
-        meetX - 8, labelY + 16,
-        meetX + 8, labelY + 16,
-        meetX, labelY + 26
+        meetX - 8, labelY + 22,
+        meetX + 8, labelY + 22,
+        meetX, labelY + 32
       );
 
       // Banner trên cao: thông báo kết quả

@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chuyển Động Ma Sát — PixiJS</title>
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.2/dist/pixi.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --ink: #16202a;
+      --muted: #667085;
+      --line: #d8dde7;
+      --accent: #1967d2;
+      --accent-2: #d93025;
+      --green: #2d8f57;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #eef3ff 0%, #f7f8fc 45%, #eef1f5 100%);
+      color: var(--ink);
+    }
+
+    #app-host {
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+      min-height: 100vh;
+    }
+
+    #left-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      padding: 20px 0;
+    }
+
+    #content-wrapper {
+      display: flex;
+      flex-direction: column;
+      width: 90%;
+      max-width: 1200px;
+      height: auto;
+      gap: 0;
+    }
+
+    #canvas-wrap {
+      position: relative;
+      width: 100%;
+      height: 500px;
+      overflow: hidden;
+      background: radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.95), rgba(226, 236, 255, 0.8) 36%, rgba(217, 228, 244, 0.95) 100%);
+    }
+
+    #footer {
+      display: none;
+    }
+
+    #controls {
+      width: 360px;
+      padding: 16px;
+      box-sizing: border-box;
+      background: rgba(255, 255, 255, 0.92);
+      border-left: 1px solid var(--line);
+      backdrop-filter: blur(8px);
+      overflow-y: auto;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 0 0 6px;
+    }
+
+    .subtitle {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: 650;
+      font-size: 13px;
+    }
+
+    .field {
+      margin-top: 4px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    input[type="range"],
+    select,
+    button {
+      width: 100%;
+      box-sizing: border-box;
+      font: inherit;
+    }
+
+    input[type="range"] {
+      accent-color: var(--accent);
+    }
+
+    select,
+    button {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 650;
+    }
+
+    button.primary {
+      background: linear-gradient(180deg, #2f77f0 0%, #195fd2 100%);
+      border-color: #195fd2;
+      color: #fff;
+    }
+
+    button.secondary {
+      background: #f8fafc;
+    }
+
+    button.danger {
+      background: #fff5f4;
+      border-color: #f1d0ce;
+      color: var(--accent-2);
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .readout,
+    .exercise {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+
+    .readout {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .exercise {
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+
+    .status-line {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: #eef4ff;
+      color: #195fd2;
+      border: 1px solid #cddcff;
+    }
+
+    .mode-badge.rolling {
+      background: #fff6df;
+      color: #9a6100;
+      border-color: #f0d28e;
+    }
+
+    .formula-box {
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      border-radius: 0;
+      background: rgba(255, 255, 255, 0.95);
+      font-size: 24px;
+      line-height: 1.8;
+      overflow-x: auto;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      max-width: 100%;
+      flex-shrink: 0;
+    }
+
+    .formula-box div {
+      margin: 15px 0;
+    }
+
+    .formula-box mjx-container {
+      font-size: 1.5em !important;
+    }
+
+    @media (max-width: 900px) {
+      #app-host {
+        flex-direction: column;
+      }
+
+      #left-section {
+        justify-content: flex-start;
+        align-items: stretch;
+        padding: 0;
+        min-height: 60vh;
+      }
+
+      #content-wrapper {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+      }
+
+      #canvas-wrap {
+        height: 400px;
+      }
+
+      #controls {
+        width: 100%;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        max-height: 40vh;
+        overflow-y: auto;
+      }
+
+      #footer {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app-host">
+    <div id="left-section">
+      <div id="content-wrapper">
+        <div id="canvas-wrap"></div>
+        <div id="formula-box" class="formula-box">$$F_{\\text{app}} \\leq \\mu_s \\cdot N$$</div>
+      </div>
+    </div>
+    <aside id="controls">
+      <h1>Chuyển Động Ma Sát</h1>
+      <p class="subtitle">Mô phỏng lực ma sát nghỉ, ma sát trượt và ma sát lăn. Đồ thị số liệu được cập nhật theo thời gian
+        thực, còn mũi tên cho biết lực tác dụng và lực ma sát.</p>
+
+      <label for="preset">Bộ tình huống mẫu</label>
+      <div class="field">
+        <select id="preset">
+          <option value="custom">Tùy chỉnh</option>
+          <option value="rest">Giữ đứng yên: lực chưa vượt ma sát nghỉ</option>
+          <option value="slide">Trượt: lực kéo đủ lớn</option>
+          <option value="roll" selected>Lăn: ma sát lăn nhỏ</option>
+        </select>
+      </div>
+
+      <label for="mode">Chế độ chuyển động</label>
+      <div class="field">
+        <select id="mode">
+          <option value="sliding">Trượt trên mặt phẳng</option>
+          <option value="rolling" selected>Lăn trên mặt phẳng</option>
+        </select>
+      </div>
+
+      <label>Khối lượng (kg): <span id="mass-val">2.00</span></label>
+      <div class="field"><input id="mass" type="range" min="0.2" max="10" step="0.1" value="2"></div>
+
+      <label>Lực tác dụng (N): <span id="force-val">5.00</span></label>
+      <div class="field"><input id="force" type="range" min="0" max="100" step="0.1" value="5"></div>
+
+      <label>Hệ số ma sát nghỉ μs: <span id="mus-val">0.40</span></label>
+      <div class="field"><input id="mus" type="range" min="0" max="1" step="0.01" value="0.4"></div>
+
+      <label>Hệ số ma sát trượt μk: <span id="muk-val">0.30</span></label>
+      <div class="field"><input id="muk" type="range" min="0" max="1" step="0.01" value="0.3"></div>
+
+      <label>Hệ số ma sát lăn μr: <span id="mur-val">0.020</span></label>
+      <div class="field"><input id="mur" type="range" min="0" max="0.2" step="0.001" value="0.02"></div>
+
+      <div class="buttons">
+        <button id="start" class="primary">Bắt đầu</button>
+        <button id="pause" class="secondary">Tạm dừng</button>
+        <button id="reset" class="danger">Đặt lại</button>
+      </div>
+
+      <div id="mode-badge" class="mode-badge">Đang ở chế độ trượt</div>
+
+      <div class="readout" id="info">
+        <div>Trạng thái: <span id="state">rest</span></div>
+        <div>Vận tốc: <span id="vel">0.00</span> m/s</div>
+        <div>Gia tốc: <span id="acc">0.00</span> m/s²</div>
+        <div>Lực ma sát: <span id="fric">0.00</span> N</div>
+        <div>Lực ngưỡng nghỉ: <span id="fstat">0.00</span> N</div>
+      </div>
+
+      <div class="exercise">
+        <strong>Bài tập mẫu</strong>
+        <div>1. Tăng lực kéo cho đến khi vật bắt đầu trượt, rồi so sánh với ngưỡng μs·N.</div>
+        <div>2. Chuyển sang chế độ lăn và quan sát vì sao μr nhỏ hơn nhiều so với μk.</div>
+        <div>3. Dùng preset để kiểm tra ba tình huống: đứng yên, trượt, lăn.</div>
+      </div>
+
+      <div class="small">
+        Khi lực tác dụng nhỏ hơn hoặc bằng lực ma sát nghỉ cực đại, vật không chuyển động. Khi vượt ngưỡng, mô phỏng chuyển sang
+        ma sát trượt hoặc ma sát lăn tùy chế độ.
+      </div>
+      <div class="status-line" id="status-line">Sẵn sàng.</div>
+    </aside>
+  </div>
+
+  <footer id="footer"></footer>
+
+  <script>
+    const canvasWrap = document.getElementById('canvas-wrap');
+    const w = canvasWrap.clientWidth || Math.max(640, window.innerWidth - 360);
+    const h = canvasWrap.clientHeight || Math.max(360, Math.floor(window.innerHeight * 0.7));
+
+    const app = new PIXI.Application({
+      width: w,
+      height: h,
+      backgroundAlpha: 0,
+      antialias: true,
+      resolution: Math.min(window.devicePixelRatio || 1, 2),
+      autoDensity: true
+    });
+
+    canvasWrap.appendChild(app.view);
+    app.view.style.width = '100%';
+    app.view.style.height = '100%';
+
+    window._pixiApp = app;
+
+    const g = 9.81;
+    const meterToPx = 72;
+    const ui = {
+      preset: document.getElementById('preset'),
+      mode: document.getElementById('mode'),
+      mass: document.getElementById('mass'),
+      force: document.getElementById('force'),
+      mus: document.getElementById('mus'),
+      muk: document.getElementById('muk'),
+      mur: document.getElementById('mur'),
+      start: document.getElementById('start'),
+      pause: document.getElementById('pause'),
+      reset: document.getElementById('reset')
+    };
+
+    const readouts = {
+      mass: document.getElementById('mass-val'),
+      force: document.getElementById('force-val'),
+      mus: document.getElementById('mus-val'),
+      muk: document.getElementById('muk-val'),
+      mur: document.getElementById('mur-val'),
+      state: document.getElementById('state'),
+      vel: document.getElementById('vel'),
+      acc: document.getElementById('acc'),
+      fric: document.getElementById('fric'),
+      fstat: document.getElementById('fstat'),
+      status: document.getElementById('status-line')
+    };
+
+    const modeBadge = document.getElementById('mode-badge');
+    const formulaBox = document.getElementById('formula-box');
+
+    const world = {
+      running: false,
+      mass: parseFloat(ui.mass.value),
+      appliedForce: parseFloat(ui.force.value),
+      mus: parseFloat(ui.mus.value),
+      muk: parseFloat(ui.muk.value),
+      mur: parseFloat(ui.mur.value),
+      mode: ui.mode.value,
+      x: 0,
+      vx: 0,
+      ax: 0,
+      friction: 0,
+      state: 'rest',
+      lastTime: performance.now(),
+      groundY: app.screen.height * 0.76,
+      blockHeight: 0.42 * meterToPx,
+      blockWidth: 0.72 * meterToPx,
+      message: 'Sẵn sàng.',
+      wheelRotation: 0
+    };
+
+    const stage = {
+      ground: new PIXI.Graphics(),
+      block: new PIXI.Graphics(),
+      arrows: new PIXI.Graphics(),
+      labels: new PIXI.Container()
+    };
+
+    const titleText = new PIXI.Text('', new PIXI.TextStyle({ fill: '#123', fontSize: 16, fontWeight: '700' }));
+    titleText.position.set(12, 10);
+    const detailText = new PIXI.Text('', new PIXI.TextStyle({ fill: '#2c3e50', fontSize: 13, lineHeight: 18 }));
+    detailText.position.set(12, 34);
+    stage.labels.addChild(titleText, detailText);
+
+    app.stage.addChild(stage.ground, stage.block, stage.arrows, stage.labels);
+
+    function pxFromMeter(meters) {
+      return 120 + meters * meterToPx;
+    }
+
+    function drawGround() {
+      stage.ground.clear();
+      stage.ground.beginFill(0x8fbf8d);
+      stage.ground.drawRect(0, world.groundY, app.screen.width, app.screen.height - world.groundY);
+      stage.ground.endFill();
+
+      stage.ground.lineStyle(2, 0x3d4b3e, 0.65);
+      stage.ground.moveTo(0, world.groundY);
+      stage.ground.lineTo(app.screen.width, world.groundY);
+    }
+
+    function drawBlock() {
+      stage.block.clear();
+      stage.block.x = pxFromMeter(world.x);
+
+      if (world.mode === 'rolling') {
+        const radius = world.blockHeight * 0.62;
+        const centerY = world.groundY - radius;
+
+        stage.block.beginFill(0xf4c542);
+        stage.block.lineStyle(3, 0xbf8e11, 1);
+        stage.block.drawCircle(0, 0, radius);
+        stage.block.endFill();
+
+        // Draw 8 spokes instead of 6 for better rotation visibility
+        stage.block.lineStyle(3, 0xbf8e11, 1);
+        for (let i = 0; i < 8; i += 1) {
+          const baseAngle = (Math.PI * 2 * i) / 8;
+          const angle = baseAngle + world.wheelRotation;
+          stage.block.moveTo(0, 0);
+          stage.block.lineTo(Math.cos(angle) * radius * 0.85, Math.sin(angle) * radius * 0.85);
+        }
+
+        // Add a marker spoke for better visual tracking
+        const markerAngle = world.wheelRotation;
+        stage.block.lineStyle(5, 0xff6f61, 1);
+        stage.block.moveTo(0, 0);
+        stage.block.lineTo(Math.cos(markerAngle) * radius * 0.90, Math.sin(markerAngle) * radius * 0.90);
+
+        stage.block.beginFill(0xf8f3e8);
+        stage.block.drawCircle(0, 0, radius * 0.22);
+        stage.block.endFill();
+
+        stage.block.beginFill(0x111111, 0.1);
+        stage.block.drawEllipse(0, radius * 0.72, radius * 0.88, radius * 0.18);
+        stage.block.endFill();
+
+        stage.block.y = centerY;
+      } else {
+        stage.block.beginFill(0xff6f61);
+        stage.block.lineStyle(2, 0xbf4b43, 1);
+        stage.block.drawRoundedRect(-world.blockWidth / 2, -world.blockHeight / 2, world.blockWidth, world.blockHeight, 10);
+        stage.block.endFill();
+        stage.block.y = world.groundY - world.blockHeight / 2;
+      }
+    }
+
+    function arrow(graphics, x1, y1, x2, y2, color) {
+      graphics.lineStyle(4, color, 1);
+      graphics.moveTo(x1, y1);
+      graphics.lineTo(x2, y2);
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const size = 10;
+      graphics.beginFill(color);
+      graphics.drawPolygon([
+        x2,
+        y2,
+        x2 - Math.cos(angle - Math.PI / 6) * size,
+        y2 - Math.sin(angle - Math.PI / 6) * size,
+        x2 - Math.cos(angle + Math.PI / 6) * size,
+        y2 - Math.sin(angle + Math.PI / 6) * size
+      ]);
+      graphics.endFill();
+    }
+
+    function updateFormulas() {
+      const N = world.mass * g;
+      const mu = world.mode === 'rolling' ? world.mur : world.muk;
+      const muLabel = world.mode === 'rolling' ? '\\mu_r' : '\\mu_k';
+
+      let htmlContent = '';
+
+      if (world.state === 'rest (static)') {
+        const fMax = (world.mus * N).toFixed(2);
+        htmlContent = `
+          <div>$$\\text{Điều kiện:} \\quad |F| \\leq \\mu_s \\cdot N = ${fMax} \\text{ N}$$</div>
+          <div>$$\\implies \\quad f = F \\text{ và } a = 0$$</div>
+        `;
+      } else if (world.state === 'sliding' || world.state === 'rolling') {
+        const f = (mu * N).toFixed(2);
+        const fNet = (world.appliedForce - mu * N).toFixed(2);
+        const a = (world.ax).toFixed(2);
+        htmlContent = `
+          <div>$$f = ${muLabel} \\cdot N = ${f} \\text{ N}$$</div>
+          <div>$$F_{\\text{net}} = F_{\\text{app}} - f = ${fNet} \\text{ N}$$</div>
+          <div>$$a = \\frac{F_{\\text{net}}}{m} = ${a} \\text{ m/s}^2$$</div>
+        `;
+      }
+
+      formulaBox.innerHTML = htmlContent;
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([formulaBox]).catch(err => console.log('MathJax error:', err));
+      }
+    }
+
+    function updateReadouts() {
+      const N = world.mass * g;
+      const fStaticMax = world.mus * N;
+      readouts.mass.textContent = world.mass.toFixed(2);
+      readouts.force.textContent = world.appliedForce.toFixed(2);
+      readouts.mus.textContent = world.mus.toFixed(2);
+      readouts.muk.textContent = world.muk.toFixed(2);
+      readouts.mur.textContent = world.mur.toFixed(3);
+      readouts.state.textContent = world.state;
+      readouts.vel.textContent = world.vx.toFixed(2);
+      readouts.acc.textContent = world.ax.toFixed(2);
+      readouts.fric.textContent = world.friction.toFixed(2);
+      readouts.fstat.textContent = fStaticMax.toFixed(2);
+      readouts.status.textContent = world.message;
+      modeBadge.textContent = world.mode === 'rolling' ? 'Đang ở chế độ lăn' : 'Đang ở chế độ trượt';
+      modeBadge.classList.toggle('rolling', world.mode === 'rolling');
+      updateFormulas();
+    }
+
+    function settleIfStatic(frictionCandidate, threshold) {
+      if (Math.abs(world.vx) < 1e-3 && Math.abs(world.appliedForce) <= threshold) {
+        world.vx = 0;
+        world.ax = 0;
+        world.friction = -world.appliedForce;
+        world.state = 'rest (static)';
+        return true;
+      }
+      return false;
+    }
+
+    function physicsStep(dt) {
+      const normalForce = world.mass * g;
+      const staticLimit = world.mus * normalForce;
+      const frictionDirection = world.vx !== 0 ? -Math.sign(world.vx) : -Math.sign(world.appliedForce || 1);
+
+      if (Math.abs(world.appliedForce) <= staticLimit && Math.abs(world.vx) < 1e-3) {
+        world.vx = 0;
+        world.ax = 0;
+        world.friction = -world.appliedForce;
+        world.state = 'rest (static)';
+        world.message = 'Lực kéo chưa vượt ngưỡng ma sát nghỉ.';
+        return;
+      }
+
+      if (world.mode === 'sliding') {
+        const kineticFriction = world.muk * normalForce * frictionDirection;
+        const netForce = world.appliedForce + kineticFriction;
+        world.friction = kineticFriction;
+        world.ax = netForce / world.mass;
+        world.vx += world.ax * dt;
+        world.x += world.vx * dt;
+        world.state = 'sliding';
+        world.message = 'Vượt qua ma sát nghỉ, vật đang trượt với ma sát trượt μk.';
+      } else {
+        const rollingFriction = world.mur * normalForce * frictionDirection;
+        const netForce = world.appliedForce + rollingFriction;
+        world.friction = rollingFriction;
+        world.ax = netForce / world.mass;
+        world.vx += world.ax * dt;
+        world.x += world.vx * dt;
+        world.state = 'rolling';
+        world.message = 'Đang lăn, lực cản nhỏ hơn nên gia tốc lớn hơn.';
+
+        const wheelRadius = world.blockHeight * 0.62;
+        world.wheelRotation += (world.vx * dt) / wheelRadius * 3.0;
+      }
+
+      if (world.x < 0) {
+        world.x = 0;
+        world.vx = 0;
+      }
+
+      const maxX = Math.max(0, (app.screen.width - 160) / meterToPx);
+      if (world.x > maxX) {
+        world.x = maxX;
+        world.vx = 0;
+      }
+    }
+
+    function render() {
+      stage.arrows.clear();
+      drawGround();
+      drawBlock();
+
+      const arrowBaseX = stage.block.x;
+      const topY = world.mode === 'rolling' ? stage.block.y - world.blockHeight * 0.95 : stage.block.y - world.blockHeight * 0.55;
+      const bottomY = world.mode === 'rolling' ? stage.block.y + world.blockHeight * 0.85 : stage.block.y + world.blockHeight * 0.55;
+      const scale = 4;
+      const appliedLength = world.appliedForce * scale;
+      const frictionLength = world.friction * scale;
+
+      arrow(stage.arrows, arrowBaseX, topY, arrowBaseX + appliedLength, topY, 0x1967d2);
+      arrow(stage.arrows, arrowBaseX, bottomY, arrowBaseX + frictionLength, bottomY, 0xd93025);
+
+      titleText.text = world.mode === 'rolling'
+        ? 'Chế độ lăn: bánh xe và lực ma sát lăn'
+        : 'Chế độ trượt: khối và lực ma sát trượt';
+      detailText.text = [
+        `x = ${world.x.toFixed(2)} m   v = ${world.vx.toFixed(2)} m/s   a = ${world.ax.toFixed(2)} m/s²`,
+        `N = ${(world.mass * g).toFixed(2)} N   μs·N = ${(world.mus * world.mass * g).toFixed(2)} N`,
+        world.mode === 'rolling'
+          ? `μr = ${world.mur.toFixed(3)}   bánh xe minh họa ma sát lăn`
+          : `μk = ${world.muk.toFixed(2)}   ma sát trượt làm vật chậm lại`
+      ].join('\n');
+
+      updateReadouts();
+    }
+
+    function resetWorld() {
+      world.x = 0;
+      world.vx = 0;
+      world.ax = 0;
+      world.friction = 0;
+      world.state = 'rest';
+      world.wheelRotation = 0;
+      world.message = world.mode === 'rolling' ? 'Đã đặt lại mô phỏng ở chế độ lăn.' : 'Đã đặt lại mô phỏng ở chế độ trượt.';
+      render();
+    }
+
+    function applyPreset(name) {
+      const presets = {
+        rest: { mode: 'sliding', mass: 2, force: 4, mus: 0.4, muk: 0.3, mur: 0.02 },
+        slide: { mode: 'sliding', mass: 2, force: 12, mus: 0.35, muk: 0.25, mur: 0.015 },
+        roll: { mode: 'rolling', mass: 2, force: 12, mus: 0.35, muk: 0.25, mur: 0.01 }
+      };
+
+      if (name === 'custom') return;
+      const preset = presets[name];
+      if (!preset) return;
+
+      ui.mode.value = preset.mode;
+      ui.mass.value = preset.mass;
+      ui.force.value = preset.force;
+      ui.mus.value = preset.mus;
+      ui.muk.value = preset.muk;
+      ui.mur.value = preset.mur;
+
+      syncFromUI();
+      resetWorld();
+      world.message = `Đã áp dụng preset: ${name}.`;
+      render();
+    }
+
+    function syncFromUI() {
+      world.mode = ui.mode.value;
+      world.mass = parseFloat(ui.mass.value);
+      world.appliedForce = parseFloat(ui.force.value);
+      world.mus = parseFloat(ui.mus.value);
+      world.muk = parseFloat(ui.muk.value);
+      world.mur = parseFloat(ui.mur.value);
+      updateReadouts();
+    }
+
+    ui.preset.addEventListener('change', () => applyPreset(ui.preset.value));
+    ui.mode.addEventListener('input', () => {
+      syncFromUI();
+      if (world.mode === 'sliding') {
+        world.wheelRotation = 0;
+      }
+      ui.preset.value = world.mode === 'rolling' ? 'roll' : 'custom';
+      render();
+    });
+    ui.mass.addEventListener('input', () => { syncFromUI(); render(); });
+    ui.force.addEventListener('input', () => { syncFromUI(); render(); });
+    ui.mus.addEventListener('input', () => { syncFromUI(); render(); });
+    ui.muk.addEventListener('input', () => { syncFromUI(); render(); });
+    ui.mur.addEventListener('input', () => { syncFromUI(); render(); });
+
+    ui.start.addEventListener('click', () => {
+      world.running = true;
+      world.lastTime = performance.now();
+      world.message = 'Đang chạy.';
+      render();
+    });
+
+    ui.pause.addEventListener('click', () => {
+      world.running = false;
+      world.message = 'Đã tạm dừng.';
+      updateReadouts();
+    });
+
+    ui.reset.addEventListener('click', () => {
+      world.running = false;
+      resetWorld();
+    });
+
+    window.addEventListener('resize', () => {
+      const width = canvasWrap.clientWidth || Math.max(640, window.innerWidth - 360);
+      const height = canvasWrap.clientHeight || Math.max(360, Math.floor(window.innerHeight * 0.7));
+      app.renderer.resize(width, height);
+      world.groundY = app.screen.height * 0.76;
+      render();
+    });
+
+    app.ticker.add(() => {
+      if (!world.running) return;
+      const now = performance.now();
+      const dt = Math.min((now - world.lastTime) / 1000, 0.05);
+      world.lastTime = now;
+      physicsStep(dt);
+      render();
+    });
+
+    syncFromUI();
+    resetWorld();
+    applyPreset('roll');
+  </script>
+</body>
+
+</html>
